@@ -4,15 +4,20 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.*;
 public class RabbitMQConsumer {
-  public static void main(String []args) throws Exception {
-    ConnectionParameters params = new ConnectionParameters();
-    params.setUsername("guest");
-    params.setPassword("guest");
-    params.setVirtualHost("/");
-    params.setRequestedHeartbeat(0);
 
-    ConnectionFactory factory = new ConnectionFactory(params);
-    Connection conn = factory.newConnection("127.0.0.1", 5672);
+    private static final String HOSTNAME = "127.0.0.1";
+    private static final int PORT = 5672;
+  public static void main(String []args) throws Exception {
+
+      ConnectionFactory factory = new ConnectionFactory();
+      factory.setUsername("guest");
+      factory.setPassword("guest");
+      factory.setVirtualHost("/");
+      factory.setHost(HOSTNAME);
+      factory.setPort(PORT);
+      factory.setRequestedHeartbeat(0);
+
+    Connection conn = factory.newConnection();
     Channel channel = conn.createChannel();
 
     String exchangeName = "myExchange";

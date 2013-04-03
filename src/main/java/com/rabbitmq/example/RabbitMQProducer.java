@@ -5,15 +5,21 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.*;
 
 public class RabbitMQProducer {
-  public static void main(String []args) throws Exception {
-    ConnectionParameters params = new ConnectionParameters();
-    params.setUsername("guest");
-    params.setPassword("guest");
-    params.setVirtualHost("/");
-    params.setRequestedHeartbeat(0);
 
-    ConnectionFactory factory = new ConnectionFactory(params);
-    Connection conn = factory.newConnection("127.0.0.1", 5672);
+    private static final String HOSTNAME = "127.0.0.1";
+    private static final int PORT = 5672;
+
+  public static void main(String []args) throws Exception {
+
+      ConnectionFactory factory = new ConnectionFactory();
+      factory.setUsername("guest");
+      factory.setPassword("guest");
+      factory.setVirtualHost("/");
+      factory.setHost(HOSTNAME);
+      factory.setPort(PORT);
+      factory.setRequestedHeartbeat(0);
+
+    Connection conn = factory.newConnection();
     Channel channel = conn.createChannel();
 
     String exchangeName = "myExchange";
@@ -25,9 +31,15 @@ public class RabbitMQProducer {
     }
     for (int i = 0; i < count; i++) {
       byte[] messageBodyBytes = ("Hello["+ (i + 1) + "], world!").getBytes();
-      AMQP.BasicProperties properties = MessageProperties.PERSISTENT_TEXT_PLAIN;
-      properties.setAppId("me");
-      properties.setReplyTo("retTestRoute");
+
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .contentType("text/plain")
+                .deliveryMode(2)
+                .priority(1)
+                .appId("me")
+                .replyTo("retTestRoute")
+                .build();
+
       channel.basicPublish(exchangeName, routingKey, properties, messageBodyBytes) ;
     }
 
