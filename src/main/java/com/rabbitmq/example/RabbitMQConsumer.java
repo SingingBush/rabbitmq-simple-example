@@ -3,49 +3,50 @@ package com.rabbitmq.example;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.*;
+
 public class RabbitMQConsumer {
 
     private static final String HOSTNAME = "127.0.0.1";
     private static final int PORT = 5672;
-  public static void main(String []args) throws Exception {
+    private static final String EXCHANGE_NAME = "myExchange";
 
-      ConnectionFactory factory = new ConnectionFactory();
-      factory.setUsername("guest");
-      factory.setPassword("guest");
-      factory.setVirtualHost("/");
-      factory.setHost(HOSTNAME);
-      factory.setPort(PORT);
-      factory.setRequestedHeartbeat(0);
+    public static void main(String[] args) throws Exception {
 
-    Connection conn = factory.newConnection();
-    Channel channel = conn.createChannel();
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setUsername("guest");
+        factory.setPassword("guest");
+        factory.setVirtualHost("/");
+        factory.setHost(HOSTNAME);
+        factory.setPort(PORT);
+        factory.setRequestedHeartbeat(0);
 
-    String exchangeName = "myExchange";
-    String queueName = "myQueue";
-    String routingKey = "testRoute";
-    boolean durable = true;
+        Connection conn = factory.newConnection();
+        Channel channel = conn.createChannel();
 
-    channel.exchangeDeclare(exchangeName, "direct", durable);
-    channel.queueDeclare(queueName, durable);
-    channel.queueBind(queueName, exchangeName, routingKey);
+        String routingKey = "testRoute";
+        boolean durable = true;
 
-    boolean noAck = false;
-    QueueingConsumer consumer = new QueueingConsumer(channel);
-    channel.basicConsume(queueName, noAck, consumer);
+        channel.exchangeDeclare(EXCHANGE_NAME, "direct", durable);
+        String queueName = channel.queueDeclare().getQueue();
+        channel.queueBind(queueName, EXCHANGE_NAME, routingKey);
 
-    boolean runInfinite = true;
-    while (runInfinite) {
-      QueueingConsumer.Delivery delivery;
-      try {
-        delivery = consumer.nextDelivery();
-      } catch (InterruptedException ie) {
-        continue;
-      }
-      long deliveryTag = delivery.getEnvelope().getDeliveryTag();
-      System.out.println("Message received: [" + deliveryTag + ", "+  delivery.getProperties().getAppId()+"] " + new String(delivery.getBody()));
-      channel.basicAck(deliveryTag, false); 
+        boolean autoAck = false;
+        QueueingConsumer consumer = new QueueingConsumer(channel);
+        channel.basicConsume(queueName, autoAck, consumer);
+
+        while (true) {
+            QueueingConsumer.Delivery delivery;
+            try {
+                delivery = consumer.nextDelivery();
+            } catch (InterruptedException ie) {
+                continue;
+            }
+            long deliveryTag = delivery.getEnvelope().getDeliveryTag();
+            System.out.printf("Message received: [%s, %s] %s",
+                              deliveryTag,
+                              delivery.getProperties().getAppId(),
+                              new String(delivery.getBody()));
+            channel.basicAck(deliveryTag, false);
+        }
     }
-    channel.close();
-    conn.close();
-  }
 } 
